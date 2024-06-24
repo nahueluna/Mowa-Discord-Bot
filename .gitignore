@@ -1,0 +1,5 @@
+node_modules
+.env
+package-lock.json
+test2.cjs
+test3.js
