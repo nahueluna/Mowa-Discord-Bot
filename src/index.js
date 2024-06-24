@@ -1,8 +1,11 @@
-import { Client, GatewayIntentBits, Events} from 'discord.js';
-import {config} from 'dotenv';
+import { Client, GatewayIntentBits, Routes } from 'discord.js';
+import { config } from 'dotenv';
+import { REST } from '@discordjs/rest'
 
 config();
 const TOKEN = process.env.TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
+const GUILD_ID = process.env.GUILD_ID;
 
 const client = new Client({ intents: [
     GatewayIntentBits.Guilds,
@@ -10,24 +13,29 @@ const client = new Client({ intents: [
     GatewayIntentBits.MessageContent,
   ] });
 
+const rest = new REST({ version: '10' }).setToken(TOKEN);
+
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
 });
 
-client.on('messageCreate', async (message) => {
-  if(message.author.bot) return;
-  if(!message.content.startsWith('!')) return;
-  
-  const args = message.content.slice(1).split(' ')[0];
+async function main() {
+  const commands = [{
+    name: 'ping',
+    description: 'Replies with Pong!',
+  }];
 
   try {
+    console.log('Started refreshing application (/) commands');
+    // Temporal para probar los comandos, se debe hacer global
+    await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
+      body: commands,
+    });
     
-    const command = require(`./commands/${args}`);
-    command.run(message);
-
+    client.login(TOKEN);
   } catch(error) {
-    console.error(`An error occurred while using command !${args}: `, error);
+    console.error(error);
   }
-});
+}
 
-client.login(TOKEN);
+main();
