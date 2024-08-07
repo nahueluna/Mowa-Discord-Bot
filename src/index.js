@@ -1,11 +1,15 @@
-import { Client, GatewayIntentBits, Routes } from 'discord.js';
+import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import { config } from 'dotenv';
-import { REST } from '@discordjs/rest'
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 config();
 const TOKEN = process.env.TOKEN;
-const CLIENT_ID = process.env.CLIENT_ID;
-const GUILD_ID = process.env.GUILD_ID;
 
 const client = new Client({ intents: [
     GatewayIntentBits.Guilds,
@@ -13,29 +17,38 @@ const client = new Client({ intents: [
     GatewayIntentBits.MessageContent,
   ] });
 
-const rest = new REST({ version: '10' }).setToken(TOKEN);
-
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
 });
 
-async function main() {
-  const commands = [{
-    name: 'ping',
-    description: 'Replies with Pong!',
-  }];
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isCommand()) return;
 
-  try {
-    console.log('Started refreshing application (/) commands');
-    // Temporal para probar los comandos, se debe hacer global
-    await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
-      body: commands,
-    });
-    
-    client.login(TOKEN);
-  } catch(error) {
-    console.error(error);
-  }
+    const command = client.commands.get(interaction.commandName);
+
+    if (!command) {
+        console.error(`No command matching ${interaction.commandName} was found.`);
+        return;
+    }
+
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        console.error(`Error executing ${interaction.commandName}`);
+        console.error(error);
+        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+    }
+});
+
+const commandsPath = path.join(__dirname, '../commands/utility');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+client.commands = new Collection();
+
+for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = await import(filePath);
+    client.commands.set(command.data.name, command);
 }
 
-main();
+client.login(TOKEN);
