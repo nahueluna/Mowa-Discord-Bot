@@ -17,38 +17,28 @@ const client = new Client({ intents: [
     GatewayIntentBits.MessageContent,
   ] });
 
-client.on('ready', () => {
-  console.log(`Logged in as ${client.user.tag}!`);
-});
-
-client.on('interactionCreate', async interaction => {
-    if (!interaction.isCommand()) return;
-
-    const command = client.commands.get(interaction.commandName);
-
-    if (!command) {
-        console.error(`No command matching ${interaction.commandName} was found.`);
-        return;
-    }
-
-    try {
-        await command.execute(interaction);
-    } catch (error) {
-        console.error(`Error executing ${interaction.commandName}`);
-        console.error(error);
-        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-    }
-});
+client.commands = new Collection();
 
 const commandsPath = path.join(__dirname, '../commands/utility');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-
-client.commands = new Collection();
 
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const command = await import(filePath);
     client.commands.set(command.data.name, command);
+}
+
+const eventsPath = path.join(__dirname, '../events');
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+
+for (const file of eventFiles) {
+    const filePath = path.join(eventsPath, file);
+    const event = await import(filePath);
+    if (event.default.once) {
+        client.once(event.default.name, (...args) => event.default.execute(...args));
+    } else {
+        client.on(event.default.name, (...args) => event.default.execute(...args));
+    }
 }
 
 client.login(TOKEN);
