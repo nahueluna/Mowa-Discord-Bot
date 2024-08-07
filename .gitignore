@@ -3,3 +3,4 @@ node_modules
 package-lock.json
 test2.cjs
 test3.js
+package.json
