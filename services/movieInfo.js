@@ -44,8 +44,8 @@ export async function getMovieInfo(title) {
                         
                         // Se valida que el elemento tomado sea de plataformas de Stream
                         if(kind_of_service.textContent.includes('Stream')) {
-                            const buyboxElements = buyboxStreamElements.querySelectorAll('picture[data-v-4465fbc1] img[data-v-4465fbc1]');    
-                            const offerLabelElements = buyboxStreamElements.querySelectorAll('div[data-v-4465fbc1]');
+                            const buyboxElements = buyboxStreamElements.querySelectorAll('picture[data-v-d50cb212] img[data-v-d50cb212]');    
+                            const offerLabelElements = buyboxStreamElements.querySelectorAll('div[data-v-d50cb212]');
                             
                             seasons = Array.from(offerLabelElements).map(s => s.textContent.trim());    // Se toma la informacion de las temporadas
                             seasons = seasons.map(s => keywords.some(keyword => s.toLowerCase().includes(keyword)) ? s : ' ');
