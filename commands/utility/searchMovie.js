@@ -1,5 +1,5 @@
-import { SlashCommandBuilder } from 'discord.js';
-import { EmbedBuilder } from '@discordjs/builders';
+import { ButtonStyle, SlashCommandBuilder } from 'discord.js';
+import { ActionRowBuilder, EmbedBuilder, ButtonBuilder } from '@discordjs/builders';
 import { getMovieInfo } from '../../services/movieInfo.js';
 
 export const data = new SlashCommandBuilder()
@@ -24,20 +24,26 @@ export async function execute(interaction) {
 
         const createEmbed = (index) => {
             const movie = movieInfo[index];
+
+            if(!movie || !movie.poster) {
+                throw new Error('Pelicula no encontrada');
+            }
+
             const embed = new EmbedBuilder()
                 .setColor(0x8626B6)
                 .setTitle(movie.title)
                 .setAuthor({name: interaction.user.username, iconURL: interaction.user.avatarURL()})
                 .addFields({name: 'Disponible en:', value: ' '})
                 .setImage(movie.poster)
-                .setTimestamp();
+                .setTimestamp()
+                .setFooter({text: `Page ${index + 1}/${movieInfo.length}`});
 
-            const plataforms = movieInfo[0].plataforms || [];
-            const addInfo = movieInfo[0].add_info || [];
+            const plataforms = movieInfo[index].plataforms || [];
+            const addInfo = movieInfo[index].add_info || [];
 
-            const plataformsFields = plataforms.map((plataform, index) => ({
+            const plataformsFields = plataforms.map((plataform, internal_index) => ({
                 name: plataform,
-                value: addInfo[index] || ' ',
+                value: addInfo[internal_index] || ' ',
                 inline: true
             }));
 
@@ -50,7 +56,39 @@ export async function execute(interaction) {
             return embed;
         }
         
-        await interaction.editReply({embeds: [createEmbed(0)]});
+        let currentIndex = 0;
+
+        const previous = new ButtonBuilder()
+            .setCustomId('previous')
+            .setLabel('←')
+            .setStyle(ButtonStyle.Primary);
+
+        const next = new ButtonBuilder()
+            .setCustomId('next')
+            .setLabel('→')
+            .setStyle(ButtonStyle.Primary);
+
+        const row = new ActionRowBuilder()
+            .addComponents(previous, next);
+
+        let response = await interaction.editReply({embeds: [createEmbed(currentIndex)], components: [row]});
+
+        const collectorFilter = i => i.user.id === interaction.user.id;
+        const collector = response.createMessageComponentCollector({filter: collectorFilter, time: 60_000});
+
+        collector.on('collect', async i => {
+            if(i.customId === 'previous') {
+                currentIndex = (currentIndex - 1 + movieInfo.length) % movieInfo.length;
+            } else if (i.customId === 'next') {
+                currentIndex = (currentIndex + 1) % movieInfo.length;
+            }
+            const embed = createEmbed(currentIndex);
+            await i.update({embeds: [embed]});
+        });
+
+        collector.on('end',() => {
+            interaction.editReply({embeds: [createEmbed(currentIndex)], components: []});
+        });
     } catch (error) {
         console.error('Failed to reply to interaction:', error);
         interaction.editReply('Error al buscar la pelicula');
