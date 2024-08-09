@@ -4,10 +4,10 @@ import { getMovieInfo } from '../../services/movieInfo.js';
 
 export const data = new SlashCommandBuilder()
     .setName('search-movie')
-    .setDescription('Replies with information about a movie')
+    .setDescription('Replies with information about a movie or series')
     .addStringOption(option =>
         option.setName('title')
-            .setDescription('The title of the movie')
+            .setDescription('The title of the movie or series')
             .setRequired(true));
 
 export async function execute(interaction) {
@@ -18,23 +18,24 @@ export async function execute(interaction) {
     try {
         const title = interaction.options.getString('title');
         
-        await interaction.reply('Buscando la pelicula...');
+        await interaction.reply('Buscando el título...');
 
         const movieInfo = await getMovieInfo(title);
 
         const createEmbed = (index) => {
             const movie = movieInfo[index];
 
-            if(!movie || !movie.poster) {
-                throw new Error('Pelicula no encontrada');
+            if(!movie) {
+                throw new Error('Título no encontrada');
             }
 
             const embed = new EmbedBuilder()
                 .setColor(0x8626B6)
                 .setTitle(movie.title)
                 .setAuthor({name: interaction.user.username, iconURL: interaction.user.avatarURL()})
+                .setThumbnail('https://www.justwatch.com/appassets/img/logo/JustWatch-logo-large.webp')
                 .addFields({name: 'Disponible en:', value: ' '})
-                .setImage(movie.poster)
+                .setImage(movie.poster || null)
                 .setTimestamp()
                 .setFooter({text: `Page ${index + 1}/${movieInfo.length}`});
 
@@ -71,7 +72,7 @@ export async function execute(interaction) {
         const row = new ActionRowBuilder()
             .addComponents(previous, next);
 
-        let response = await interaction.editReply({embeds: [createEmbed(currentIndex)], components: [row]});
+        let response = await interaction.editReply({content: '', embeds: [createEmbed(currentIndex)], components: [row]});
 
         const collectorFilter = i => i.user.id === interaction.user.id;
         const collector = response.createMessageComponentCollector({filter: collectorFilter, time: 60_000});
@@ -91,6 +92,6 @@ export async function execute(interaction) {
         });
     } catch (error) {
         console.error('Failed to reply to interaction:', error);
-        interaction.editReply('Error al buscar la pelicula');
+        interaction.editReply('Error al buscar el título');
     }
 }
