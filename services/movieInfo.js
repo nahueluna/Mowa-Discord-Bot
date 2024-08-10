@@ -37,9 +37,11 @@ export async function getMovieInfo(query) {
                     const yearElement = box.querySelector('.header-year');
                     const posterElement = box.querySelector('span[data-v-8e48db44] img[data-v-293fad05]');
                     const buyboxStreamElements = box.querySelector('div[data-v-4ea74991]'); // div con plataformas
+                    const scoringElements = box.querySelector('.jw-scoring-listing__rating'); // div con puntuacion
                     
-                    const full_title = (titleElement ? titleElement.textContent.trim() : '') + (yearElement ? yearElement.textContent.trim() : '');
+                    const full_title = (titleElement ? titleElement.textContent.trim() : '') + ' ' + (yearElement ? yearElement.textContent.trim() : '');
                     const poster = posterElement ? posterElement.src : '';
+                    const score = scoringElements ? scoringElements.querySelector('div').textContent : '';
                     
                     let plataforms = [];
                     let seasons = []
@@ -63,7 +65,8 @@ export async function getMovieInfo(query) {
                         title: full_title,
                         poster: poster,
                         plataforms: plataforms,
-                        add_info: seasons
+                        add_info: seasons,
+                        scoring: score
                     }
                     
                 }, box, keywords);
