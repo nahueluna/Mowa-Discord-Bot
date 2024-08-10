@@ -1,24 +1,26 @@
 import puppeteer from "puppeteer";
 import {setTimeout} from "node:timers/promises";
 
-const country_prefix = 'ar/buscar'  // reemplazar a futuro por setting en el bot
-
-export async function getMovieInfo(title) {
+export async function getMovieInfo(query) {
     const browser = await puppeteer.launch({
         headless: true,
         defaultViewport: null,
     });
     
     const page = await browser.newPage();
-    const query = title.replace(' ', '%20');
-    const website = `https://www.justwatch.com/${country_prefix}?q=${query}`;
+    const website = `https://www.justwatch.com/`;
     
     try {
         await page.goto(website, {
             waitUntil: "domcontentloaded",
         });
 
-        await page.waitForSelector('.title-list-row__row', {visible: true});
+        // Accede a la barra de búsqueda e ingresa el título
+        await page.locator('input[aria-label="search text"]').hover();
+        await page.locator('input[aria-label="search text"]').fill(query);
+        await page.keyboard.press('Enter');
+
+        await page.waitForSelector('.title-list-row__row', {visible: true, timeout: 45_000});
 
         const boxes_list = await page.$$('.title-list-row__row');
 
@@ -26,8 +28,10 @@ export async function getMovieInfo(title) {
 
         const items = []
 
+        await setTimeout(500);
+
         for(let box of boxes_list) {
-            try {
+            try {        
                 let movie = await page.evaluate((box, keywords) => {
                     const titleElement = box.querySelector('.header-title');
                     const yearElement = box.querySelector('.header-year');
@@ -80,5 +84,3 @@ export async function getMovieInfo(title) {
         await browser.close();
     }
 }
-
-
