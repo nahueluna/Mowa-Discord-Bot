@@ -32,9 +32,9 @@ export async function execute(interaction) {
             const embed = new EmbedBuilder()
                 .setColor(0xFCCA02)
                 .setTitle(movie.title)
+                .setURL(movie.url || null)
                 .setAuthor({name: interaction.user.username, iconURL: interaction.user.avatarURL()})
                 .setThumbnail('https://www.justwatch.com/appassets/img/logo/JustWatch-logo-large.webp')
-                .addFields({name: 'Disponible en:', value: ' '})
                 .setImage(movie.poster || null)
                 .setTimestamp()
                 .setFooter({text: `Page ${index + 1}/${movieInfo.length}`});
@@ -45,13 +45,12 @@ export async function execute(interaction) {
             const plataformsFields = plataforms.map((plataform, internal_index) => ({
                 name: `▸  ${plataform}`,
                 value: addInfo[internal_index] || ' ',
-                inline: true
             }));
 
             if(plataformsFields.length > 0) {
                 embed.addFields(plataformsFields);
             } else {
-                embed.addFields({name: ' ', value: 'No disponible', inline: true});
+                embed.addFields({name: 'No disponible', value: 'El título no se encuentra disponible en ninguna plataforma de la región', inline: true});
             }
 
             if(movie.scoring) {
@@ -73,20 +72,39 @@ export async function execute(interaction) {
             .setLabel('→')
             .setStyle(ButtonStyle.Primary);
 
+        const first = new ButtonBuilder()
+            .setCustomId('first')
+            .setLabel('⇇')
+            .setStyle(ButtonStyle.Primary);
+
+        const last = new ButtonBuilder()
+            .setCustomId('last')
+            .setLabel('⇉')
+            .setStyle(ButtonStyle.Primary);
+
         const row = new ActionRowBuilder()
-            .addComponents(previous, next);
+            .addComponents(first, previous, next, last);
 
         let response = await interaction.editReply({content: '', embeds: [createEmbed(currentIndex)], components: [row]});
 
         const collectorFilter = i => i.user.id === interaction.user.id;
-        const collector = response.createMessageComponentCollector({filter: collectorFilter, time: 60_000});
+        const collector = response.createMessageComponentCollector({filter: collectorFilter, time: 120_000});
 
         collector.on('collect', async i => {
-            if(i.customId === 'previous') {
-                currentIndex = (currentIndex - 1 + movieInfo.length) % movieInfo.length;
-            } else if (i.customId === 'next') {
-                currentIndex = (currentIndex + 1) % movieInfo.length;
+            switch(i.customId) {
+                case 'previous':
+                    currentIndex = (currentIndex - 1 + movieInfo.length) % movieInfo.length;
+                    break;
+                case 'next':
+                    currentIndex = (currentIndex + 1) % movieInfo.length;
+                    break;
+                case 'first':
+                    currentIndex = 0;
+                    break;
+                case 'last':
+                    currentIndex = movieInfo.length - 1;
             }
+
             const embed = createEmbed(currentIndex);
             await i.update({embeds: [embed]});
         });
@@ -96,6 +114,6 @@ export async function execute(interaction) {
         });
     } catch (error) {
         console.error('Failed to reply to interaction:', error);
-        interaction.editReply('Error al buscar el título');
+        interaction.editReply('No se ha podido encontrar el título. Intente nuevamente.');
     }
 }
