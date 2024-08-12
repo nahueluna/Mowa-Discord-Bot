@@ -33,7 +33,6 @@ export async function execute(interaction) {
                 .setColor(0xFCCA02)
                 .setTitle(movie.title)
                 .setURL(movie.url || null)
-                .setAuthor({name: interaction.user.username, iconURL: interaction.user.avatarURL()})
                 .setThumbnail('https://www.justwatch.com/appassets/img/logo/JustWatch-logo-large.webp')
                 .setImage(movie.poster || null)
                 .setTimestamp()
@@ -50,13 +49,26 @@ export async function execute(interaction) {
             if(plataformsFields.length > 0) {
                 embed.addFields(plataformsFields);
             } else {
-                embed.addFields({name: 'No disponible', value: 'El título no se encuentra disponible en ninguna plataforma de la región', inline: true});
+                embed.addFields({name: 'No disponible', value: 'El título no se encuentra disponible en ninguna plataforma de la región'});
             }
 
-            if(movie.scoring) {
-                embed.addFields({name: 'Calificación:', value: `${movie.scoring} ★`});
+            if(movie.synopsis) {
+                embed.setDescription(movie.synopsis);
             }
-        
+
+            const fieldsToCheck = [
+                {name: 'Géneros', value: movie.genre ? movie.genre : null, inline: true},
+                {name: 'Duración', value: movie.duration ? movie.duration : null, inline: true},
+                {name: 'Calificacion', value: movie.scoring ? `${movie.scoring} ★` : null, inline: true},
+            ];
+            
+            // Agregará solo los campos cuyo valor se haya encontrado (no nulos) 
+            fieldsToCheck.forEach(field => {
+                if(field.value) {
+                    embed.addFields(field);
+                }
+            });
+
             return embed;
         }
         
@@ -105,13 +117,13 @@ export async function execute(interaction) {
                     currentIndex = movieInfo.length - 1;
             }
 
-            const embed = createEmbed(currentIndex);
-            await i.update({embeds: [embed]});
+            await i.update({embeds: [createEmbed(currentIndex)]});
         });
 
         collector.on('end',() => {
             interaction.editReply({embeds: [createEmbed(currentIndex)], components: []});
         });
+        
     } catch (error) {
         console.error('Failed to reply to interaction:', error);
         interaction.editReply('No se ha podido encontrar el título. Intente nuevamente.');
