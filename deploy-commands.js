@@ -44,7 +44,7 @@ const commandFolders = fs.readdirSync(foldersPath);
 
 		// El método put es usado para refrescar todos los comandos en el servidor con la configuración actual
 		await rest.put(
-			Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+			Routes.applicationCommands(CLIENT_ID),
 			{ body: commands },
 		);
 
