@@ -49,7 +49,7 @@ export async function execute(interaction) {
             if(plataformsFields.length > 0) {
                 embed.addFields(plataformsFields);
             } else {
-                embed.addFields({name: 'No disponible', value: 'El título no se encuentra disponible en ninguna plataforma de la región'});
+                embed.addFields({name: 'No disponible', value: 'El título no está disponible en la región'});
             }
 
             if(movie.synopsis) {
@@ -100,7 +100,7 @@ export async function execute(interaction) {
         let response = await interaction.editReply({content: '', embeds: [createEmbed(currentIndex)], components: [row]});
 
         const collectorFilter = i => i.user.id === interaction.user.id;
-        const collector = response.createMessageComponentCollector({filter: collectorFilter, time: 120_000});
+        const collector = response.createMessageComponentCollector({filter: collectorFilter, time: 240_000});
 
         collector.on('collect', async i => {
             switch(i.customId) {
@@ -123,7 +123,7 @@ export async function execute(interaction) {
         collector.on('end',() => {
             interaction.editReply({embeds: [createEmbed(currentIndex)], components: []});
         });
-        
+
     } catch (error) {
         console.error('Failed to reply to interaction:', error);
         interaction.editReply('No se ha podido encontrar el título. Intente nuevamente.');
