@@ -97,35 +97,67 @@ export async function execute(interaction) {
         const row = new ActionRowBuilder()
             .addComponents(first, previous, next, last);
 
-        let response = await interaction.editReply({content: '', embeds: [createEmbed(currentIndex)], components: [row]});
-
-        const collectorFilter = i => i.user.id === interaction.user.id;
-        const collector = response.createMessageComponentCollector({filter: collectorFilter, time: 240_000});
-
-        collector.on('collect', async i => {
-            switch(i.customId) {
-                case 'previous':
-                    currentIndex = (currentIndex - 1 + movieInfo.length) % movieInfo.length;
-                    break;
-                case 'next':
-                    currentIndex = (currentIndex + 1) % movieInfo.length;
-                    break;
-                case 'first':
-                    currentIndex = 0;
-                    break;
-                case 'last':
-                    currentIndex = movieInfo.length - 1;
-            }
-
-            await i.update({embeds: [createEmbed(currentIndex)]});
-        });
-
-        collector.on('end',() => {
-            interaction.editReply({embeds: [createEmbed(currentIndex)], components: []});
-        });
+        try {
+            let response = await interaction.editReply({content: '', embeds: [createEmbed(currentIndex)], components: [row]});
+            
+            const collectorFilter = i => i.user.id === interaction.user.id;
+            const collector = response.createMessageComponentCollector({filter: collectorFilter, time: 240_000});
+    
+            collector.on('collect', async i => {
+                try {
+                    switch(i.customId) {
+                        case 'previous':
+                            currentIndex = (currentIndex - 1 + movieInfo.length) % movieInfo.length;
+                            break;
+                        case 'next':
+                            currentIndex = (currentIndex + 1) % movieInfo.length;
+                            break;
+                        case 'first':
+                            currentIndex = 0;
+                            break;
+                        case 'last':
+                            currentIndex = movieInfo.length - 1;
+                    }
+        
+                    await i.update({embeds: [createEmbed(currentIndex)]});
+                } catch (error) {
+                    if(error.code === 10008) { // DiscordAPIError[10008]: Unknown Message
+                        collector.stop('Message deleted');
+                        throw error;
+                    } else {
+                        console.error('Failed to update the message:', error);
+                    }
+                }
+            });
+    
+            collector.on('end',() => {
+                try {
+                    interaction.editReply({embeds: [createEmbed(currentIndex)], components: []});
+                } catch (error) {
+                    console.error('Failed to remove the collector:', error);
+                    throw error;
+                }
+            });
+        } catch (error) {
+            console.error('Failed to create the collector:', error);
+            throw error;
+        }
 
     } catch (error) {
-        console.error('Failed to reply to interaction:', error);
-        interaction.editReply('No se ha podido encontrar el título. Intente nuevamente.');
+        if(error.code === 10008) { // DiscordAPIError[10008]: Unknown Message
+            console.warn('The message may have been deleted before it could be edited.');
+        } else {
+            console.error('Failed to reply to interaction:', error);
+            interaction.editReply('No se ha podido encontrar el título. Intente nuevamente.');
+        }
     }
 }
+
+// Manjean errores no capturados por bloques try-catch
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
