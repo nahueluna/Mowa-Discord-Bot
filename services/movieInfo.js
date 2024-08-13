@@ -12,7 +12,7 @@ export async function getMovieInfo(query) {
     
     try {
         await page.goto(website, {
-            waitUntil: "domcontentloaded",
+            waitUntil: "networkidle2",
         });
 
         // Accede a la barra de búsqueda e ingresa el título
@@ -21,7 +21,7 @@ export async function getMovieInfo(query) {
         await page.keyboard.press('Enter');
         
         await page.waitForSelector('.title-list-row__row', {visible: true, timeout: 20_000});
-
+        
         const boxes_list = await page.$$('.title-list-row__row');
         const items = [];
 
@@ -39,6 +39,7 @@ export async function getMovieInfo(query) {
                 item.synopsis = movieDetail.synopsis;
                 item.duration = movieDetail.duration;
                 item.genre = movieDetail.genres;
+
             }
         }
 
@@ -70,14 +71,15 @@ async function getMovieMainInfo(page, box) {
             let plataforms = [];
             let seasons = []
             if(buyboxStreamElements){ 
-                const kind_of_service = buyboxStreamElements.querySelector('label.buybox-row__label');
+                const kindOfService = buyboxStreamElements.querySelector('label.buybox-row__label');
+                const service = kindOfService ? kindOfService.textContent : '';
                 
                 // Se valida que el elemento tomado sea de plataformas de Stream
-                if(kind_of_service.textContent.includes('Stream')) {
+                if(service.includes('Stream')) {
                     const buyboxElements = buyboxStreamElements.querySelectorAll('picture img.offer__icon');    
                     const offerLabelElements = buyboxStreamElements.querySelectorAll('div.offer__label');
                     
-                    seasons = Array.from(offerLabelElements).map(s => s.textContent.trim());    // Se toma la informacion de las temporadas
+                    seasons = Array.from(offerLabelElements).map(s => s ? s.textContent.trim() : '');    // Se toma la informacion de las temporadas
                     plataforms = Array.from(buyboxElements).map(p => p.alt.trim());    
                 }
             }
@@ -113,7 +115,7 @@ async function getMovieDetails(page, movie) {
         const genreKeywords = ['géneros', 'genre'];
         
         await page.goto(movie.url, {
-            waitUntil: "domcontentloaded",
+            waitUntil: "networkidle2",
         });
         
         await page.waitForSelector('.title-detail__title', {visible: true, timeout: 10_000});
@@ -126,13 +128,16 @@ async function getMovieDetails(page, movie) {
             let genres = null;
             
             for(let detail of infoDetail) {
-                const element = detail.querySelector('h3').textContent;
+                const htmlDetailElement = detail.querySelector('h3');
+                const detailElement = htmlDetailElement ? htmlDetailElement.textContent.trim() : '';
                 
-                if(durationKeys.some(durationKeys => element.toLowerCase().includes(durationKeys)) && !duration) {
-                    duration = detail.querySelector('.detail-infos__value').textContent.trim();
+                if(durationKeys.some(durationKeys => detailElement.toLowerCase().includes(durationKeys)) && !duration) {
+                    const durationElement = detail.querySelector('.detail-infos__value');
+                    duration = durationElement ? durationElement.textContent.trim() : '';
                 }
-                else if(genreKeys.some(genreKeys => element.toLowerCase().includes(genreKeys)) && !genres) {
-                    genres = detail.querySelector('.detail-infos__value').textContent.trim();
+                else if(genreKeys.some(genreKeys => detailElement.toLowerCase().includes(genreKeys)) && !genres) {
+                    const genresElement = detail.querySelector('.detail-infos__value');
+                    genres = genresElement ? genresElement.textContent.trim() : '';
                 }
 
                 if(duration && genres) {
@@ -140,7 +145,8 @@ async function getMovieDetails(page, movie) {
                 }
             }
 
-            const synopsis = document.querySelector('.text-wrap-pre-line.mt-0').textContent.trim() || '';
+            const synopsisElement = document.querySelector('#synopsis.jump-link-anchor p');
+            const synopsis = synopsisElement ? synopsisElement.textContent.trim() : '';
 
             return {
                 duration: duration,
