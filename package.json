@@ -1,0 +1,19 @@
+{
+  "name": "movie_info_bot",
+  "version": "1.0.0",
+  "main": "test3.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start:dev": "nodemon ./src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "module",
+  "dependencies": {
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5",
+    "puppeteer": "^22.12.0"
+  }
+}
