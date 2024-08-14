@@ -33,16 +33,6 @@ export async function getMovieInfo(query) {
             await setTimeout(500);
         }
 
-        for(let item of items) {
-            if(item.url) {
-                const movieDetail = await getMovieDetails(page, item);
-                item.synopsis = movieDetail.synopsis;
-                item.duration = movieDetail.duration;
-                item.genre = movieDetail.genres;
-
-            }
-        }
-
         return items;
 
     } catch(error) {
@@ -101,7 +91,7 @@ async function getMovieMainInfo(page, box) {
         }, box).catch(error => {console.error('Error evaluating box content: ', error)});
 
         // Se almacenan solo las temporadas de las series, fuera del contexto de evaluate
-        movie.add_info = movie.add_info.map(s => seasonKeywords.some(seasonKeywords => s.toLowerCase().includes(seasonKeywords)) ? s : ' ');
+        movie.add_info = movie.add_info.map(s => seasonKeywords.some(seasonKeywords => s.toLowerCase().includes(seasonKeywords)) ? s : '');
 
         return movie;
     } catch(error) {
@@ -109,11 +99,18 @@ async function getMovieMainInfo(page, box) {
     }
 }
 
-async function getMovieDetails(page, movie) {
+export async function getMovieDetails(movie) {
     try {
         const durationKeywords = ['duración', 'runtime'];
         const genreKeywords = ['géneros', 'genre'];
         
+        const browser = await puppeteer.launch({
+            headless: true,
+            defaultViewport: null,
+        });
+    
+        const page = await browser.newPage();
+
         await page.goto(movie.url, {
             waitUntil: "networkidle2",
         });
@@ -155,8 +152,13 @@ async function getMovieDetails(page, movie) {
             }
         }, durationKeywords, genreKeywords);
 
-        return movieDetail;
+        movie.synopsis = movieDetail.synopsis;
+        movie.duration = movieDetail.duration;
+        movie.genre = movieDetail.genres;
+
     } catch(error) {
         console.error('Error getting movie details: ', error);
+    } finally {
+        return movie;
     }
 }
