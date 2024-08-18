@@ -1,5 +1,2 @@
-node_modules
 .env
-package-lock.json
-test2.cjs
-package.json
+yarn.lock
