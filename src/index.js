@@ -11,11 +11,13 @@ const __dirname = dirname(__filename);
 config();
 const TOKEN = process.env.TOKEN;
 
-const client = new Client({ intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-  ] });
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+    ]
+});
 
 client.commands = new Collection();
 
