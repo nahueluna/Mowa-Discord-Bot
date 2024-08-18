@@ -17,11 +17,11 @@ export async function execute(interaction) {
     }
     try {
         const title = interaction.options.getString('title');
-        
+
         await interaction.reply('Buscando el título...');
 
         const movieInfo = await getMovieInfo(title);
-        
+
         let currentIndex = 0;
 
         const previous = new ButtonBuilder()
@@ -54,15 +54,15 @@ export async function execute(interaction) {
 
         try {
             let embed = await createBasicEmbed(movieInfo[currentIndex], currentIndex, movieInfo.length);
-            let response = await interaction.editReply({content: '', embeds: [embed], components: [row]});
-            
+            let response = await interaction.editReply({ content: '', embeds: [embed], components: [row] });
+
             const collectorFilter = i => i.user.id === interaction.user.id;
-            const collector = response.createMessageComponentCollector({filter: collectorFilter, time: 240_000});
+            const collector = response.createMessageComponentCollector({ filter: collectorFilter, time: 240_000 });
             let plusButtonState = false;
-    
+
             collector.on('collect', async i => {
                 try {
-                    switch(i.customId) {
+                    switch (i.customId) {
                         case 'previous':
                             currentIndex = (currentIndex - 1 + movieInfo.length) % movieInfo.length;
                             break;
@@ -76,18 +76,25 @@ export async function execute(interaction) {
                             currentIndex = movieInfo.length - 1;
                             break;
                         case 'plus':
-                            await i.deferUpdate();    
+                            await i.deferUpdate();
 
-                            if(!plusButtonState) {
+                            if (!plusButtonState) {
                                 plusButtonState = true;
 
-                                const movieDetails = await getMovieDetails(movieInfo[currentIndex]);
-                                await i.editReply({embeds: [await modifyEmbed(embed, movieDetails)]});
+                                let movieDetails;
 
-                                if(!movieDetails.url) {
+                                try {
+                                    movieDetails = await getMovieDetails(movieInfo[currentIndex]);
+                                } catch (error) {
+                                    console.error('Failed to get movie details:', error);
                                     interaction
-                                        .followUp({ content: 'No se pudo obtener toda la información adicional del título', ephemeral: true })
+                                        .followUp({ content: 'No se pudo obtener toda la información adicional del título', ephemeral: true });
+
+                                    movieDetails = movieInfo[currentIndex];
+                                } finally {
+                                    await i.editReply({ embeds: [await modifyEmbed(embed, movieDetails)] });
                                 }
+
                             } else {
                                 interaction.followUp({ content: 'La información adicional disponible ya fue mostrada', ephemeral: true });
                             }
@@ -96,10 +103,10 @@ export async function execute(interaction) {
 
                     plusButtonState = false;
                     embed = await createBasicEmbed(movieInfo[currentIndex], currentIndex, movieInfo.length);
-                    await i.update({embeds: [embed]});
-                    
+                    await i.update({ embeds: [embed] });
+
                 } catch (error) {
-                    if(error.code === 10008) { // DiscordAPIError[10008]: Unknown Message
+                    if (error.code === 10008) { // DiscordAPIError[10008]: Unknown Message
                         collector.stop('Message deleted');
                         throw error;
                     } else {
@@ -107,10 +114,10 @@ export async function execute(interaction) {
                     }
                 }
             });
-    
+
             collector.on('end', () => {
                 try {
-                    interaction.editReply({components: []});
+                    interaction.editReply({ components: [] });
                 } catch (error) {
                     console.error('Failed to remove the collector:', error);
                     throw error;
@@ -122,7 +129,7 @@ export async function execute(interaction) {
         }
 
     } catch (error) {
-        if(error.code === 10008) { // DiscordAPIError[10008]: Unknown Message
+        if (error.code === 10008) { // DiscordAPIError[10008]: Unknown Message
             console.warn('The message may have been deleted before it could be edited.');
         } else {
             console.error('Failed to reply to interaction:', error);
@@ -140,8 +147,8 @@ async function createBasicEmbed(movie, index, length) {
             .setThumbnail('https://www.justwatch.com/appassets/img/logo/JustWatch-logo-large.webp')
             .setImage(movie.poster || null)
             .setTimestamp()
-            .setFooter({text: `Page ${index + 1}/${length}`});
-    
+            .setFooter({ text: `Page ${index + 1}/${length}` });
+
         const plataforms = movie.plataforms || [];
         const addInfo = movie.add_info || [];
 
@@ -149,13 +156,13 @@ async function createBasicEmbed(movie, index, length) {
             name: `▸  ${plataform}`,
             value: addInfo[internal_index] || 'Streaming',
         }));
-    
-        if(plataformsFields.length > 0) {
+
+        if (plataformsFields.length > 0) {
             embed.addFields(plataformsFields);
         } else {
-            embed.addFields({name: 'No disponible', value: 'El título no está disponible en la región'});
+            embed.addFields({ name: 'No disponible', value: 'El título no está disponible en la región' });
         }
-    
+
         return embed;
     } catch (error) {
         console.error('Failed to create the basic embed:', error);
@@ -163,20 +170,20 @@ async function createBasicEmbed(movie, index, length) {
     }
 }
 
-async function modifyEmbed(embed, movie) {    
-    if(movie.synopsis) {
+async function modifyEmbed(embed, movie) {
+    if (movie.synopsis) {
         embed.setDescription(movie.synopsis);
     }
 
     const fieldsToCheck = [
-        {name: 'Géneros', value: movie.genre ? movie.genre : null, inline: true},
-        {name: 'Duración', value: movie.duration ? movie.duration : null, inline: true},
-        {name: 'Calificación', value: movie.scoring ? `${movie.scoring} ★` : null, inline: true},
+        { name: 'Géneros', value: movie.genre ? movie.genre : null, inline: true },
+        { name: 'Duración', value: movie.duration ? movie.duration : null, inline: true },
+        { name: 'Calificación', value: movie.scoring ? `${movie.scoring} ★` : null, inline: true },
     ];
-    
+
     // Agregará solo los campos cuyo valor se haya encontrado (no nulos) 
     fieldsToCheck.forEach(field => {
-        if(field.value) {
+        if (field.value) {
             embed.addFields(field);
         }
     });
