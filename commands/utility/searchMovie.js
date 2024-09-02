@@ -56,12 +56,16 @@ export async function execute(interaction) {
             let embed = await createBasicEmbed(movieInfo[currentIndex], currentIndex, movieInfo.length);
             let response = await interaction.editReply({ content: '', embeds: [embed], components: [row] });
 
-            const collectorFilter = i => i.user.id === interaction.user.id;
-            const collector = response.createMessageComponentCollector({ filter: collectorFilter, time: 240_000 });
+            const collector = response.createMessageComponentCollector({ time: 240_000 });
             let plusButtonState = false;
 
             collector.on('collect', async i => {
                 try {
+                    if (i.user.id !== interaction.user.id) {
+                        i.reply({ content: 'Solo el usuario que solicitó la información puede interactuar', ephemeral: true });
+                        return;
+                    }
+
                     switch (i.customId) {
                         case 'previous':
                             currentIndex = (currentIndex - 1 + movieInfo.length) % movieInfo.length;
